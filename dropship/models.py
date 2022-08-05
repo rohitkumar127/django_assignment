@@ -1,3 +1,4 @@
+from pickle import TRUE
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
@@ -17,13 +18,28 @@ class User(AbstractUser):
         return self.username
 
 
+class Member(models.Model):
+    first_name = models.CharField(max_length=50)
+    last_name = models.CharField(max_length=50)
+
+    email = models.CharField(max_length=50, unique=True)
+    password = models.CharField(max_length=50)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True)
+    USERNAME_FIELD = 'email'
+
+    def __str__(self):
+        return self.first_name + " " + self.last_name
+
+
 class Project(TimestampModel):
     title = models.CharField(max_length=128)
     description = models.TextField()
     code = models.CharField(max_length=64, unique=True, null=False)
+    creator = models.ForeignKey(
+        Member, on_delete=models.CASCADE, default="", null=True)
 
     def __str__(self):
-        return "{0} {1}".format(self.code, self.title)
+        return "{0} {1} {2}".format(self.code, self.title, self.creator)
 
 
 class Issue(TimestampModel):
@@ -32,6 +48,15 @@ class Issue(TimestampModel):
     STORY = "STORY"
     EPIC = "EPIC"
     TYPES = [(BUG, BUG), (TASK, TASK), (STORY, STORY), (EPIC, EPIC)]
+
+    Open = "Open"
+    InProgress = "InProgress"
+    InReview = "InReview"
+    CodeComplete = "CodeComplete"
+    QATesting = "QA Testing"
+    Done = "Done"
+    STATUS = [(Open, Open), (InProgress, InProgress), (InReview, InReview),
+              (CodeComplete, CodeComplete), (QATesting, QATesting), (Done, Done)]
 
     title = models.CharField(max_length=128)
     description = models.TextField()
@@ -42,6 +67,14 @@ class Issue(TimestampModel):
     project = models.ForeignKey(
         Project, on_delete=models.CASCADE, related_name="issues", null=False
     )
+
+    reporter = models.ForeignKey(
+        Member, on_delete=models.CASCADE, default="", null=True, related_name='reporter')
+    assignee = models.ForeignKey(
+        Member, on_delete=models.CASCADE, default="", null=True, related_name='assignee')
+
+    status = models.CharField(max_length=20, choices=STATUS,
+                              default=Open, null=False)
 
     def __str__(self):
         return "{0}-{1}-{2}-{3}".format(self.project.code, self.title, self.created_at, self.updated_at)

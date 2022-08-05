@@ -14,8 +14,18 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from dropship import views
+from rest_framework import viewsets
+
+router = DefaultRouter()
+# router.register('owners',  views.OwnerView)
+router.register('projects', views.ProjectModelViewSet, basename='project')
+router.register('members', views.MemberModelViewSet, basename='member')
+router.register('issue', views.IssueModelViewSet, basename='issue')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('', include(router.urls)),
 ]
