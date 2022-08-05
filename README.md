@@ -9,8 +9,8 @@ DropShip - An API Platform for DropShip Front-End.
 
 clone the repository using any of the commands.
 
-1. `git clone  git@git.hashedin.com:hu2k19/dropship.git` 
-2. `git clone https://git.hashedin.com/hu2k19/dropship.git`
+
+1. `git clone https://github.com/rohitkumar127/django_assignment
 
 
 ### To setup local environment dependencies
