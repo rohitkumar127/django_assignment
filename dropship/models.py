@@ -36,11 +36,12 @@ class Issue(TimestampModel):
     title = models.CharField(max_length=128)
     description = models.TextField()
 
-    type = models.CharField(max_length=8, choices=TYPES, default=BUG, null=False)
+    type = models.CharField(max_length=8, choices=TYPES,
+                            default=BUG, null=False)
 
     project = models.ForeignKey(
         Project, on_delete=models.CASCADE, related_name="issues", null=False
     )
 
     def __str__(self):
-        return "{0}-{1}".format(self.project.code, self.title)
+        return "{0}-{1}-{2}-{3}".format(self.project.code, self.title, self.created_at, self.updated_at)
