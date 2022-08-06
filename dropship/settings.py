@@ -38,7 +38,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    # External packages
+    # External packages ,
+    'rest_framework.authtoken',
     "rest_framework",
     # Apps
     'dropship'
@@ -131,4 +132,9 @@ AUTH_USER_MODEL = "dropship.User"
 # REST framework settings
 
 REST_FRAMEWORK = {
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+        'rest_framework.renderers.BrowsableAPIRenderer',
+    ],
+    'DEFAULT_FILTER_BACKEND': ['django_filters.rest_framework.DjangoFilterBackend'],
 }

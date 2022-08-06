@@ -77,4 +77,4 @@ class Issue(TimestampModel):
                               default=Open, null=False)
 
     def __str__(self):
-        return "{0}-{1}-{2}-{3}".format(self.project.code, self.title, self.created_at, self.updated_at)
+        return "{0}-{1}-{2}-{3}".format(self.project, self.title)
