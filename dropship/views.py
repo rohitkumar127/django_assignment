@@ -25,14 +25,14 @@ class IssueModelViewSet(viewsets.ModelViewSet):
 
 
 class SprintModelViewSet(viewsets.ModelViewSet):
-    queryset = models.Issue.objects.all()
-    serializer_class = serializers.IssueSerializer
+    queryset = models.Sprint.objects.all()
+    serializer_class = serializers.SprintSerializer
     authentication_classes = [SessionAuthentication]
     permission_classes = [IsAuthenticated]
 
 
 class CommentModelViewSet(viewsets.ModelViewSet):
-    queryset = models.Issue.objects.all()
-    serializer_class = serializers.IssueSerializer
+    queryset = models.Comment.objects.all()
+    serializer_class = serializers.CommentSerializer
     authentication_classes = [SessionAuthentication]
     permission_classes = [IsAuthenticated]

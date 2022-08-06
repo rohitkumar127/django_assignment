@@ -11,6 +11,8 @@ router = DefaultRouter()
 router.register('projects', views.ProjectModelViewSet, basename='project')
 router.register('members', views.MemberModelViewSet, basename='member')
 router.register('issue', views.IssueModelViewSet, basename='issue')
+router.register('sprint', views.SprintModelViewSet, basename='sprint')
+router.register('comment', views.CommentModelViewSet, basename='comment')
 
 urlpatterns = [
     path('admin/', admin.site.urls),

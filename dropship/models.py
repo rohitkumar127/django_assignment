@@ -39,7 +39,7 @@ class Project(TimestampModel):
         Member, on_delete=models.CASCADE, default="", null=True)
 
     def __str__(self):
-        return "{0} {1} {2}".format(self.code, self.title, self.creator)
+        return "{0}-{1}-{2}".format(self.code, self.title, self.creator)
 
 
 class Sprint(models.Model):
@@ -57,7 +57,7 @@ class Sprint(models.Model):
         Project, on_delete=models.CASCADE, default="", null=True)
 
     def __str__(self):
-        return "{0} {1} ".format(self.title, self.description)
+        return "{0}-{1} ".format(self.title, self.description)
 
 
 class Issue(TimestampModel):
@@ -100,7 +100,7 @@ class Issue(TimestampModel):
                               default=Open, null=False)
 
     def __str__(self):
-        return "{0}-{1}-{2}-{3}".format(self.project, self.title)
+        return "{0}-{1}".format(self.project, self.title)
 
 
 class Comment(models.Model):
@@ -110,4 +110,4 @@ class Comment(models.Model):
     project = models.ForeignKey(Project, on_delete=models.CASCADE, null=True)
 
     def __str__(self):
-        return "{0} {1} ".format(self.pk, self.issue)
+        return "{0}-{1} ".format(self.pk, self.issue)

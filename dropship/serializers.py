@@ -52,3 +52,17 @@ class IssueSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Issue
         fields = "__all__"
+
+
+class SprintSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = models.Sprint
+        fields = "__all__"
+
+
+class CommentSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = models.Comment
+        fields = "__all__"
