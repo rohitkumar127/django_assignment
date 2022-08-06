@@ -22,3 +22,17 @@ class IssueModelViewSet(viewsets.ModelViewSet):
     serializer_class = serializers.IssueSerializer
     authentication_classes = [SessionAuthentication]
     permission_classes = [IsAuthenticated]
+
+
+class SprintModelViewSet(viewsets.ModelViewSet):
+    queryset = models.Issue.objects.all()
+    serializer_class = serializers.IssueSerializer
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+
+class CommentModelViewSet(viewsets.ModelViewSet):
+    queryset = models.Issue.objects.all()
+    serializer_class = serializers.IssueSerializer
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [IsAuthenticated]

@@ -11,10 +11,6 @@ class ProjectSerializer(serializers.ModelSerializer):
 
 class MemberSerializer(serializers.ModelSerializer):
 
-    # class Meta:
-    #     model = models.Member
-    #     fields = "__all__"
-
     class Meta:
         model = models.Member
         fields = ('id', 'first_name', 'last_name', 'email', 'password')

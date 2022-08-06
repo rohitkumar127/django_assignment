@@ -1,3 +1,4 @@
+
 from pickle import TRUE
 from django.contrib.auth.models import AbstractUser
 from django.db import models
@@ -12,7 +13,6 @@ class TimestampModel(models.Model):
 
 
 class User(AbstractUser):
-    # If there are any fields needed add here.
 
     def __str__(self):
         return self.username
@@ -42,6 +42,24 @@ class Project(TimestampModel):
         return "{0} {1} {2}".format(self.code, self.title, self.creator)
 
 
+class Sprint(models.Model):
+    title = models.CharField(max_length=128)
+    description = models.TextField()
+    startdate = models.DateField()
+    enddate = models.DateField()
+
+    START = "START"
+    STOP = "STOP"
+    TYPES = [(START, START), (STOP, STOP)]
+    type = models.CharField(max_length=8, choices=TYPES, null=True)
+
+    project = models.ForeignKey(
+        Project, on_delete=models.CASCADE, default="", null=True)
+
+    def __str__(self):
+        return "{0} {1} ".format(self.title, self.description)
+
+
 class Issue(TimestampModel):
     BUG = "BUG"
     TASK = "TASK"
@@ -55,6 +73,7 @@ class Issue(TimestampModel):
     CodeComplete = "CodeComplete"
     QATesting = "QA Testing"
     Done = "Done"
+
     STATUS = [(Open, Open), (InProgress, InProgress), (InReview, InReview),
               (CodeComplete, CodeComplete), (QATesting, QATesting), (Done, Done)]
 
@@ -68,6 +87,10 @@ class Issue(TimestampModel):
         Project, on_delete=models.CASCADE, related_name="issues", null=False
     )
 
+    sprint = models.ForeignKey(
+        Sprint, on_delete=models.CASCADE, related_name="issues", null=True
+    )
+
     reporter = models.ForeignKey(
         Member, on_delete=models.CASCADE, default="", null=True, related_name='reporter')
     assignee = models.ForeignKey(
@@ -78,3 +101,13 @@ class Issue(TimestampModel):
 
     def __str__(self):
         return "{0}-{1}-{2}-{3}".format(self.project, self.title)
+
+
+class Comment(models.Model):
+    comment = models.TextField()
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True)
+    issue = models.ForeignKey(Issue, on_delete=models.CASCADE, null=True)
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, null=True)
+
+    def __str__(self):
+        return "{0} {1} ".format(self.pk, self.issue)
