@@ -1,5 +1,9 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from rest_framework.authtoken.models import Token
+from django.conf import settings
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 
 class TimestampModel(models.Model):
@@ -12,9 +16,14 @@ class TimestampModel(models.Model):
 
 class User(AbstractUser):
     # If there are any fields needed add here.
-    # role=models.CharField(max_length=30,null=True)
+    role=models.CharField(max_length=30,null=True)
     def __str__(self):
         return self.username
+
+@receiver(post_save, sender=settings.AUTH_USER_MODEL)
+def create_auth_token(sender, instance=None, created=False, **kwargs):
+    if created:
+        Token.objects.create(user=instance)
 
 
 class Project(TimestampModel):
@@ -52,13 +61,21 @@ class Issue(TimestampModel):
 
     assignee = models.ForeignKey(User, blank=True, null=True, on_delete=models.SET_NULL, related_name='assignee')
 
-    status = models.CharField(max_length=30,null=True,blank=True)
+    OPEN='open'
+    INPRGRESS='in progress'
+    INREVIEW='in review'
+    CodeComplete='code complete '
+    QATesting='qa testing'
+    DONE='done'
+    STATUS = [(OPEN,OPEN),(INPRGRESS,INPRGRESS),(INREVIEW,INREVIEW),(CodeComplete,CodeComplete),(QATesting,QATesting),(DONE,DONE)]
 
-    watchers = models.ManyToManyField(User, blank=True,related_name='watcher')
+    status=models.CharField(max_length=30,choices=STATUS,default=OPEN,null=False)
+
+    watchers = models.ManyToManyField(User, blank=True)
 
     sprint = models.ForeignKey(Sprint, blank=True, related_name='sprint', on_delete=models.CASCADE,null=True)
 
-    label = models.ManyToManyField(Label, blank=True, )
+    label = models.ManyToManyField(Label, blank=True)
 
     type = models.CharField(max_length=8, choices=TYPES, default=BUG, null=False)
 
