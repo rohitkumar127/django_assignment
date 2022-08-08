@@ -1,5 +1,5 @@
 
-from pickle import TRUE
+
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
@@ -60,6 +60,13 @@ class Sprint(models.Model):
         return "{0}-{1} ".format(self.title, self.description)
 
 
+class Label(models.Model):
+    name = models.CharField(max_length=20)
+
+    def __str__(self):
+        return "{0}".format(self.name)
+
+
 class Issue(TimestampModel):
     BUG = "BUG"
     TASK = "TASK"
@@ -88,7 +95,7 @@ class Issue(TimestampModel):
     )
 
     sprint = models.ForeignKey(
-        Sprint, on_delete=models.CASCADE, related_name="issues", null=True
+        Sprint, on_delete=models.CASCADE, related_name="issues", null=True,  blank=True
     )
 
     reporter = models.ForeignKey(
@@ -96,8 +103,11 @@ class Issue(TimestampModel):
     assignee = models.ForeignKey(
         Member, on_delete=models.CASCADE, default="", null=True, related_name='assignee')
 
+    watchers_list = models.ManyToManyField(Member, null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS,
                               default=Open, null=False)
+
+    labels_list = models.ManyToManyField(Label, null=True, blank=True)
 
     def __str__(self):
         return "{0}-{1}".format(self.project, self.title)

@@ -1,5 +1,6 @@
 from dropship import models
 from rest_framework import serializers
+from drf_writable_nested import WritableNestedModelSerializer
 
 
 class ProjectSerializer(serializers.ModelSerializer):
@@ -47,11 +48,40 @@ class MemberSerializer(serializers.ModelSerializer):
         return super().update(obj, validated_data)
 
 
-class IssueSerializer(serializers.ModelSerializer):
+class LabelSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = models.Label
+        fields = "__all__"
+
+
+class IssueSerializer(WritableNestedModelSerializer, serializers.ModelSerializer):
+
+    labels_list = LabelSerializer(many=True)
+    watchers_list = MemberSerializer(many=True)
 
     class Meta:
         model = models.Issue
-        fields = "__all__"
+        fields = '__all__'
+
+    def create(self, validated_data):
+        labels_data = validated_data.pop('labels_list')
+        watchers_data = validated_data.pop('watchers_list')
+        album = models.Issue.objects.create(**validated_data)
+        # print(label_data)
+        temp_list = []
+        temp_list1 = []
+        for label_data in labels_data:
+            obj = models.Label.objects.create(**label_data)
+            temp_list.append(obj)
+
+        for watcher_data in watchers_data:
+            obj = models.Member.objects.create(**watcher_data)
+            temp_list1.append(obj)
+
+        album.labels_list.add(*temp_list)
+        album.watchers_list.add(*temp_list1)
+        return album
 
 
 class SprintSerializer(serializers.ModelSerializer):

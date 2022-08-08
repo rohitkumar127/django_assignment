@@ -1,10 +1,11 @@
 from django.contrib import admin
 
-from .models import User, Project, Issue, Member, Sprint, Comment
+from dropship import models
 
-admin.site.register(User)
-admin.site.register(Project)
-admin.site.register(Issue)
-admin.site.register(Member)
-admin.site.register(Sprint)
-admin.site.register(Comment)
+admin.site.register(models.User)
+admin.site.register(models.Project)
+admin.site.register(models.Issue)
+admin.site.register(models.Member)
+admin.site.register(models.Sprint)
+admin.site.register(models.Comment)
+admin.site.register(models.Label)
