@@ -1,7 +1,7 @@
 from dropship import models
 from dropship import serializers
 from rest_framework import viewsets
-from rest_framework.authentication import SessionAuthentication  # TokenAuthentication ,
+from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import IsAuthenticated
 
 
