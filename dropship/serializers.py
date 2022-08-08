@@ -1,6 +1,8 @@
+# from urllib import request
 from dropship import models
 from rest_framework import serializers
 from drf_writable_nested import WritableNestedModelSerializer
+# from rest_framework.response import Response
 
 
 class ProjectSerializer(serializers.ModelSerializer):
@@ -63,10 +65,15 @@ class IssueSerializer(WritableNestedModelSerializer, serializers.ModelSerializer
         model = models.Issue
         fields = '__all__'
 
-    def create(self, validated_data):
+    def create(self, validated_data, *args, **kwargs):
         labels_data = validated_data.pop('labels_list')
         watchers_data = validated_data.pop('watchers_list')
         album = models.Issue.objects.create(**validated_data)
+
+        # issue_data = request.data
+        # new_timelog = models.TimeLog.objects.create(
+        #     estimated_time=issue_data['estimated_time'], time_spent=issue_data['time_spent'])
+
         # print(label_data)
         temp_list = []
         temp_list1 = []
@@ -80,6 +87,7 @@ class IssueSerializer(WritableNestedModelSerializer, serializers.ModelSerializer
 
         album.labels_list.add(*temp_list)
         album.watchers_list.add(*temp_list1)
+        # album.add(new_timelog)
         return album
 
 

@@ -1,5 +1,3 @@
-
-
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
@@ -65,6 +63,14 @@ class Label(models.Model):
 
     def __str__(self):
         return "{0}".format(self.name)
+
+
+class TimeLog(models.Model):
+    estimated_time = models.CharField(max_length=10)
+    time_spent = models.CharField(max_length=10)
+
+    def __str__(self):
+        return "{0}--{1}".format(self.estimatd_time, self.time_spent)
 
 
 class Issue(TimestampModel):
