@@ -1,5 +1,7 @@
 from rest_framework import serializers
-from dropship.models import Project,Issue,User,Label,Sprint,Comment
+from dropship.models import Project, Issue, User, Label, Sprint, Comment, Worklog
+
+
 class ProjectSerializer(serializers.ModelSerializer):
     class Meta:
         model=Project
@@ -17,6 +19,7 @@ class UserSerializer(serializers.ModelSerializer):
         model=User
         fields="__all__"
 
+
 class LabelSerializer(serializers.ModelSerializer):
 
     class Meta:
@@ -33,4 +36,8 @@ class CommentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model=Comment
+        fields="__all__"
+class WorklogSerializer(serializers.ModelSerializer):
+    class Meta:
+        model=Worklog
         fields="__all__"

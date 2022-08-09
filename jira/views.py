@@ -5,15 +5,15 @@ from django.shortcuts import render
 from django.utils import timezone
 from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.views import ObtainAuthToken
+from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import viewsets, authentication
-from dropship.models import Project, Issue, User, Label
+from dropship.models import Project, Issue, User, Label, Comment, Sprint, Worklog
 from django.core.mail import send_mail
 
-
 from .serializers import ProjectSerializer, LabelSerializer, IssueSerializer, UserSerializer, SprintSerializer, \
-    CommentSerializer
+    CommentSerializer, WorklogSerializer
 
 
 class ProjectView(viewsets.ViewSet):
@@ -43,7 +43,9 @@ class ProjectView(viewsets.ViewSet):
 
     def get_projects(self, request):
         query = Project.objects.all()
-        response = ProjectSerializer(query, many=True)
+        paginator = LimitOffsetPagination()
+        result_page = paginator.paginate_queryset(query, request)
+        response = ProjectSerializer(result_page, many=True)
         return Response(response.data)
 
     def delete(self, request, identifier):
@@ -56,10 +58,10 @@ class ProjectView(viewsets.ViewSet):
 
 class CustomAuthToken(ObtainAuthToken):
     def post(self, request, *args, **kwargs):
-        print(request.data)
         serializer = self.serializer_class(data=request.data,
                                            context={'request': request})
         serializer.is_valid(raise_exception=True)
+
         user = serializer.validated_data['user']
         token, created = Token.objects.get_or_create(user=user)
         return Response({
@@ -88,14 +90,20 @@ class IssueView(viewsets.ViewSet):
         title1 = request.query_params.get('title')
         description1 = request.query_params.get('description')
         if title1 != None and description1 != None:
-            response=list(Issue.objects.filter(title=title1))
-            response=IssueSerializer(response, many=True)
+            response = list(Issue.objects.filter(title=title1))
+            paginator = LimitOffsetPagination()
+            result_page = paginator.paginate_queryset(response, request)
+            response = IssueSerializer(result_page, many=True)
         elif project_id != None:
             response = list(Issue.objects.filter(project=project_id))
-            response = IssueSerializer(response, many=True)
+            paginator = LimitOffsetPagination()
+            result_page = paginator.paginate_queryset(response, request)
+            response = IssueSerializer(result_page, many=True)
         else:
             query = Issue.objects.all()
-            response = IssueSerializer(query, many=True)
+            paginator = LimitOffsetPagination()
+            result_page = paginator.paginate_queryset(query, request)
+            response = IssueSerializer(result_page, many=True)
         return Response(response.data, status=200)
 
     def get_issue(self, request, identifier):
@@ -123,12 +131,12 @@ class IssueView(viewsets.ViewSet):
         issue = Issue.objects.get(pk=identifier)
         status_changeable = self.update_status(issue.status, request.data['status'])
         for i in range(len(request.data['label'])):
-            request.data['label'][i]=request.data['label'][i].lower()
+            request.data['label'][i] = request.data['label'][i].lower()
         if not status_changeable:
             return Response({"Failed": "Check spelling and sequence of status"}, status=400)
         # send_mail(
-        #     f'Status change',
-        #     '{issue.title} status has been changed from {issue.status} to {request.data["status"]}',
+        #     'Status change',
+        #     f'{issue.title} status has been changed from {issue.status} to {request.data["status"]}',
         #     'az5717@srmist.edu.in',
         #     ['raghavendraarveti@gmail.com'],
         #     fail_silently=False,
@@ -136,8 +144,8 @@ class IssueView(viewsets.ViewSet):
         serializer = IssueSerializer(issue, data=request.data, partial=True)
         serializer.is_valid()
         serializer.save()
-            # return Response(serializer.data, status=201)
-        return Response("Issue updated", status=400)
+        # return Response(serializer.data, status=201)
+        return Response("Issue updated", status=200)
 
     # def update_issue(self, request, identifier):
     #     issue = Issue()
@@ -157,12 +165,12 @@ class IssueView(viewsets.ViewSet):
     #             return Response("No user with that Id", status=404)
     #     return Response('Issue updated', status=200)
 
-    def attach_label(self,request,identifier):
+    def attach_label(self, request, identifier):
         # label=LabelSerializer(data=request.data)
         # label.save()
         request.data['label'] = request.data['label'].lower()
-        label=request.data['label']
-        issue=Issue.objects.get(pk=identifier)
+        label = request.data['label']
+        issue = Issue.objects.get(pk=identifier)
         try:
             issue.label.add(label)
         except:
@@ -170,15 +178,14 @@ class IssueView(viewsets.ViewSet):
             serializer.is_valid(raise_exception=True)
             serializer.save()
             issue.label.add(label)
-        serializer2=IssueSerializer(issue)
+        serializer2 = IssueSerializer(issue)
         return Response(serializer2.data, status=201)
 
-    def detach_label(self,request,identifier):
+    def detach_label(self, request, identifier):
         issue = Issue.objects.get(pk=identifier)
-        label=request.data["label"]
+        label = request.data["label"]
         issue.label.remove(label)
         return Response(f"{label} detached from issue")
-
 
     def delete(self, request, identifier):
         try:
@@ -187,14 +194,122 @@ class IssueView(viewsets.ViewSet):
             return Response("No issue with that Id", status=404)
         return Response('Deleted sucessfully', status=200)
 
+
 class LabelView(viewsets.ViewSet):
-    def post(self,request):
-        request.data['label']=request.data['label'].lower()
+    def post(self, request):
+        request.data['label'] = request.data['label'].lower()
         serializer = LabelSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
-        return Response(serializer.data,status=201)
+        return Response(serializer.data, status=201)
 
-    def delete(self,request,identifier):
+    def delete(self, request, identifier):
         Label.objects.get(pk=identifier.lower()).delete()
         return Response(f"Label {identifier} deleted")
+
+
+class CommentView(viewsets.ViewSet):
+    def post(self, request):
+        data = request.data
+        serializer = CommentSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=201)
+
+    def patch(self, request, identifier):
+        data = request.data['comment']
+        comment = Comment.objects.get(pk=identifier)
+        comment.comment = data
+        comment.save()
+        return Response(data="Comment updated", status=200)
+
+    def delete(self, request, identifier):
+        try:
+            Comment.objects.get(pk=identifier).delete()
+        except:
+            return Response(data="No comment with that Id", status=400)
+        return Response(data="Comment deleted", status=200)
+
+
+class SprintView(viewsets.ViewSet):
+    def post(self, request):
+        data = request.data
+        serializer = SprintSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=201)
+
+    def start_stop_sprint(self, request, identifier):
+        sprint = Sprint.objects.get(pk=identifier)
+        if sprint.sprint_status == None:
+            sprint.sprint_status = True
+            sprint.start_date = datetime.date.today()
+            response = "Sprint started"
+        elif sprint.sprint_status == True:
+            sprint.sprint_status = False
+            sprint.end_date = datetime.date.today()
+            response = "Sprint stoped"
+        else:
+            response = "Sprint once stopped can not be started"
+            return Response(response, status=400)
+        sprint.save()
+        return Response(response, status=200)
+
+    def delete(self, request, identifier):
+        try:
+            Sprint.objects.get(pk=identifier).delete()
+        except:
+            return Response(data="No sprint with that Id", status=400)
+        return Response(data="Sprint deleted", status=200)
+
+    def add_issue_to_sprint(self, request, identifier):
+        issue_id = request.query_params.get('issue-id')
+        if issue_id == None:
+            return Response("Please pass issue-id as query param", status=400)
+        try:
+            issue = Issue.objects.get(pk=issue_id)
+        except:
+            return Response("No such issue exists", status=400)
+        issue.sprint_id = identifier
+        return Response(data="Issue added to sprint", status=200)
+
+    def remove_issue_from_sprint(self, request, identifier):
+        issue_id = request.query_params.get('issue-id')
+        if issue_id == None:
+            return Response("Please pass issue-id as query param", status=400)
+        try:
+            issue = Issue.objects.get(pk=issue_id)
+        except:
+            return Response("No such issue exists", status=400)
+        issue.sprint_id = None
+        return Response(data="Issue removed from sprint", status=200)
+
+
+class WorklogView(viewsets.ViewSet):
+    def create(self, request):
+        data = request.data
+        serializer = WorklogSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=201)
+
+    def patch(self, request, identifier):
+        worklog = Worklog.objects.get(pk=identifier)
+        try:
+            if (request.data['user'] != worklog.user) or (request.data['issue'] != worklog.issue):
+                return Response(data="Issue and user can not be edited", status=400)
+        except KeyError:
+            pass
+        serializer = WorklogSerializer(worklog, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=201)
+        return Response(data="wrong parameters", status=400)
+
+    def delete(self, request, identifier):
+        try:
+            worklog = Worklog.objects.get(pk=identifier)
+            worklog.delete()
+        except:
+            Response("Worklog not found", status=400)
+        return Response("Worklog deleted", status=200)

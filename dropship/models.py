@@ -16,9 +16,11 @@ class TimestampModel(models.Model):
 
 class User(AbstractUser):
     # If there are any fields needed add here.
-    role=models.CharField(max_length=30,null=True)
+    role = models.CharField(max_length=30, null=True)
+
     def __str__(self):
         return self.username
+
 
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)
 def create_auth_token(sender, instance=None, created=False, **kwargs):
@@ -36,11 +38,12 @@ class Project(TimestampModel):
 
 
 class Sprint(models.Model):
-    project = models.ForeignKey(User, on_delete=models.CASCADE, related_name='project', null=False)
-    sprint_title=models.CharField(max_length=30)
-    start_date = models.DateField(auto_now_add=True)
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='project', null=False)
+    sprint_title = models.CharField(max_length=30)
+    start_date = models.DateField()
     end_date = models.DateField()
-    sprint_status = models.BooleanField()
+    # start:0,stop:1 not started:null
+    sprint_status = models.BooleanField(blank=True, null=True)
 
 
 class Label(models.Model):
@@ -61,19 +64,20 @@ class Issue(TimestampModel):
 
     assignee = models.ForeignKey(User, blank=True, null=True, on_delete=models.SET_NULL, related_name='assignee')
 
-    OPEN='open'
-    INPRGRESS='in progress'
-    INREVIEW='in review'
-    CodeComplete='code complete '
-    QATesting='qa testing'
-    DONE='done'
-    STATUS = [(OPEN,OPEN),(INPRGRESS,INPRGRESS),(INREVIEW,INREVIEW),(CodeComplete,CodeComplete),(QATesting,QATesting),(DONE,DONE)]
+    OPEN = 'open'
+    INPRGRESS = 'in progress'
+    INREVIEW = 'in review'
+    CodeComplete = 'code complete '
+    QATesting = 'qa testing'
+    DONE = 'done'
+    STATUS = [(OPEN, OPEN), (INPRGRESS, INPRGRESS), (INREVIEW, INREVIEW), (CodeComplete, CodeComplete),
+              (QATesting, QATesting), (DONE, DONE)]
 
-    status=models.CharField(max_length=30,choices=STATUS,default=OPEN,null=False)
+    status = models.CharField(max_length=30, choices=STATUS, default=OPEN, null=False)
 
     watchers = models.ManyToManyField(User, blank=True)
 
-    sprint = models.ForeignKey(Sprint, blank=True, related_name='sprint', on_delete=models.CASCADE,null=True)
+    sprint = models.ForeignKey(Sprint, blank=True, related_name='sprint', on_delete=models.CASCADE, null=True)
 
     label = models.ManyToManyField(Label, blank=True)
 
@@ -91,3 +95,11 @@ class Comment(models.Model):
     comment = models.TextField()
     user = models.ForeignKey(User, on_delete=models.DO_NOTHING, related_name='user', null=False)
     issue = models.ForeignKey(Issue, on_delete=models.CASCADE, related_name='issue', null=False)
+
+class Worklog(models.Model):
+    time_spent=models.CharField(max_length=10)
+    start_date=models.DateField()
+    remaining_estimation=models.CharField(max_length=10)
+    work_description=models.TextField()
+    issue=models.ForeignKey(Issue, on_delete=models.CASCADE, related_name='issue_worklog', null=False)
+    user = models.ForeignKey(User, on_delete=models.DO_NOTHING, related_name='user_worklog', null=False)
