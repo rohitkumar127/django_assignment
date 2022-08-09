@@ -62,7 +62,7 @@ class Issue(TimestampModel):
 
     reporter = models.ForeignKey(User, on_delete=models.DO_NOTHING, related_name='reporter_id', null=True)
 
-    assignee = models.ForeignKey(User, blank=True, null=True, on_delete=models.SET_NULL, related_name='assignee')
+    assignee = models.ForeignKey(User, blank=True, null=True, on_delete=models.SET_NULL, related_name='assignee',db_column='assignee')
 
     OPEN = 'open'
     INPRGRESS = 'in progress'
@@ -84,7 +84,7 @@ class Issue(TimestampModel):
     type = models.CharField(max_length=8, choices=TYPES, default=BUG, null=False)
 
     project = models.ForeignKey(
-        Project, on_delete=models.CASCADE, related_name="issues", null=False
+        Project, on_delete=models.CASCADE, related_name="issues", null=False,db_column='project'
     )
 
     def __str__(self):

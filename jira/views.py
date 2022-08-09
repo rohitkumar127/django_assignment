@@ -11,6 +11,8 @@ from rest_framework.response import Response
 from rest_framework import viewsets, authentication
 from dropship.models import Project, Issue, User, Label, Comment, Sprint, Worklog
 from django.core.mail import send_mail
+from django.db.models import Q
+import sqlite3
 
 from .serializers import ProjectSerializer, LabelSerializer, IssueSerializer, UserSerializer, SprintSerializer, \
     CommentSerializer, WorklogSerializer
@@ -86,11 +88,29 @@ class IssueView(viewsets.ViewSet):
         return Response(serializer.data, status=201)
 
     def get(self, request):
+        dsql = request.query_params.get('dsql')
+        if dsql != None:
+            connection = sqlite3.connect('db.sqlite3')
+            crsr = connection.cursor()
+            sql_command = 'select id from dropship_issue where'+dsql
+            crsr.execute(sql_command)
+            p = crsr.fetchall()
+            print(crsr.fetchall())
+            l = []
+            for i in p:
+                print('123', i)
+                issue = Issue.objects.get(pk=i[0])
+                l.append(issue)
+                print('abc', i)
+            response=IssueSerializer(l,many=True)
+            # keys=('id','created_at','updated_at','title','description','status','type','project','reporter')
+            crsr.close()
+            return Response({'data':response.data})
         project_id = request.query_params.get('project-id')
         title1 = request.query_params.get('title')
         description1 = request.query_params.get('description')
         if title1 != None and description1 != None:
-            response = list(Issue.objects.filter(title=title1))
+            response = list(Issue.objects.filter(title=title1, description=description1))
             paginator = LimitOffsetPagination()
             result_page = paginator.paginate_queryset(response, request)
             response = IssueSerializer(result_page, many=True)
@@ -100,6 +120,7 @@ class IssueView(viewsets.ViewSet):
             result_page = paginator.paginate_queryset(response, request)
             response = IssueSerializer(result_page, many=True)
         else:
+            print('bbb')
             query = Issue.objects.all()
             paginator = LimitOffsetPagination()
             result_page = paginator.paginate_queryset(query, request)
@@ -219,13 +240,19 @@ class CommentView(viewsets.ViewSet):
     def patch(self, request, identifier):
         data = request.data['comment']
         comment = Comment.objects.get(pk=identifier)
-        comment.comment = data
-        comment.save()
-        return Response(data="Comment updated", status=200)
+        if int(request.query_params.get('logged-user-id')) == comment.user_id:
+            comment.comment = data
+            comment.save()
+            return Response(data="Comment updated", status=200)
+        return Response(data="Only commented user can edit", status=400)
 
     def delete(self, request, identifier):
         try:
-            Comment.objects.get(pk=identifier).delete()
+            comment = Comment.objects.get(pk=identifier)
+            if int(request.query_params.get('logged-user-id')) == comment.user_id:
+                comment.delete()
+            else:
+                return Response(data="Only commented user can delete his own comment", status=400)
         except:
             return Response(data="No comment with that Id", status=400)
         return Response(data="Comment deleted", status=200)
@@ -295,21 +322,26 @@ class WorklogView(viewsets.ViewSet):
 
     def patch(self, request, identifier):
         worklog = Worklog.objects.get(pk=identifier)
-        try:
-            if (request.data['user'] != worklog.user) or (request.data['issue'] != worklog.issue):
-                return Response(data="Issue and user can not be edited", status=400)
-        except KeyError:
-            pass
-        serializer = WorklogSerializer(worklog, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=201)
-        return Response(data="wrong parameters", status=400)
+        if int(request.query_params.get('logged-user-id')) == worklog.user_id:
+            try:
+                if (request.data['user'] != worklog.user) or (request.data['issue'] != worklog.issue):
+                    return Response(data="Issue and user can not be edited", status=400)
+            except KeyError:
+                pass
+            serializer = WorklogSerializer(worklog, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data, status=201)
+            return Response(data="wrong parameters", status=400)
+        return Response(data="You can edit only your log", status=400)
 
     def delete(self, request, identifier):
         try:
             worklog = Worklog.objects.get(pk=identifier)
-            worklog.delete()
+            if int(request.query_params.get('logged-user-id')) == worklog.user_id:
+                worklog.delete()
+            else:
+                return Response(data="You can edit only your log", status=400)
         except:
             Response("Worklog not found", status=400)
         return Response("Worklog deleted", status=200)

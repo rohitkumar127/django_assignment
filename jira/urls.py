@@ -18,6 +18,6 @@ path('sprint/<int:identifier>/start-stop',SprintView.as_view({'patch':'start_sto
 path('sprint/<int:identifier>',SprintView.as_view({'delete':'delete'})),
 path('sprint/<int:identifier>/add-issue',SprintView.as_view({'patch':'add_issue_to_sprint'})),
 path('sprint/<int:identifier>/remove-issue',SprintView.as_view({'patch':'remove_issue_from_sprint'})),
-path('worklog',WorklogView.as_view({'post':'post'})),
+path('worklog',WorklogView.as_view({'post':'create'})),
 path('worklog/<int:identifier>',WorklogView.as_view({'patch':'patch'}))
 ]
