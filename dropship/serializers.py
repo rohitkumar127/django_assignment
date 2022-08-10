@@ -16,7 +16,7 @@ class MemberSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = models.Member
-        fields = ('id', 'first_name', 'last_name', 'email', 'password')
+        fields = ('id', 'first_name', 'last_name', 'email', 'password', 'role')
         extra_kwargs = {
             'password': {
                 'write_only': True,
@@ -28,12 +28,13 @@ class MemberSerializer(serializers.ModelSerializer):
 
         user = models.User.objects.create_user(
             validated_data['email'], validated_data['email'], validated_data['password'])
-
+        # print(user)
         member = models.Member.objects.create(
             first_name=validated_data['first_name'],
             last_name=validated_data['last_name'],
             email=validated_data['email'],
             password=validated_data['password'],
+            role=validated_data['role'],
             user=user
         )
         return member
@@ -70,11 +71,6 @@ class IssueSerializer(WritableNestedModelSerializer, serializers.ModelSerializer
         watchers_data = validated_data.pop('watchers_list')
         album = models.Issue.objects.create(**validated_data)
 
-        # issue_data = request.data
-        # new_timelog = models.TimeLog.objects.create(
-        #     estimated_time=issue_data['estimated_time'], time_spent=issue_data['time_spent'])
-
-        # print(label_data)
         temp_list = []
         temp_list1 = []
         for label_data in labels_data:

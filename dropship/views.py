@@ -2,9 +2,11 @@ from dropship import models
 from dropship import serializers
 from rest_framework import viewsets
 from rest_framework.authentication import SessionAuthentication
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter
+
+from dropship.permissions import IsAdmin, IsProjectManager, IsProjectManagerOrReadOnly,  SprintUserWritePermission  # Mypermission,
 
 
 class MemberModelViewSet(viewsets.ModelViewSet):
@@ -18,9 +20,9 @@ class ProjectModelViewSet(viewsets.ModelViewSet):
     queryset = models.Project.objects.all()
     serializer_class = serializers.ProjectSerializer
     authentication_classes = [SessionAuthentication]
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAdmin]
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['title', 'code', 'creator']
+    filterset_fields = ['title', 'code', 'creator', 'creator__email']
 
 
 class IssueModelViewSet(viewsets.ModelViewSet):
@@ -30,14 +32,14 @@ class IssueModelViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['title', 'type', 'project',
-                        'sprint', 'reporter', 'assignee', 'status', 'labels_list', 'watchers_list']
+                        'sprint', 'reporter', 'reporter__email', 'assignee__email', 'status', 'labels_list', 'watchers_list__email']
 
 
 class SprintModelViewSet(viewsets.ModelViewSet):
     queryset = models.Sprint.objects.all()
     serializer_class = serializers.SprintSerializer
     authentication_classes = [SessionAuthentication]
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsProjectManager]
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['title', 'startdate', 'enddate', 'project', 'type']
 

@@ -22,6 +22,7 @@ class Member(models.Model):
 
     email = models.CharField(max_length=50, unique=True)
     password = models.CharField(max_length=50)
+    role = models.CharField(max_length=50, default="")
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True)
     USERNAME_FIELD = 'email'
 
@@ -70,7 +71,7 @@ class TimeLog(models.Model):
     time_spent = models.CharField(max_length=10)
 
     def __str__(self):
-        return "{0}--{1}".format(self.estimatd_time, self.time_spent)
+        return "{0}--{1}".format(self.estimated_time, self.time_spent)
 
 
 class Issue(TimestampModel):
@@ -97,11 +98,11 @@ class Issue(TimestampModel):
                             default=BUG, null=False)
 
     project = models.ForeignKey(
-        Project, on_delete=models.CASCADE, related_name="issues", null=False
+        Project, on_delete=models.CASCADE, related_name="projects", null=False
     )
 
     sprint = models.ForeignKey(
-        Sprint, on_delete=models.CASCADE, related_name="issues", null=True,  blank=True
+        Sprint, on_delete=models.CASCADE, related_name="sprint", null=True,  blank=True
     )
 
     reporter = models.ForeignKey(
