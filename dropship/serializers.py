@@ -83,7 +83,6 @@ class IssueSerializer(WritableNestedModelSerializer, serializers.ModelSerializer
 
         album.labels_list.add(*temp_list)
         album.watchers_list.add(*temp_list1)
-        # album.add(new_timelog)
         return album
 
 
