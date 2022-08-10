@@ -1,5 +1,4 @@
 import datetime
-import json
 
 from django.shortcuts import render
 from django.utils import timezone
@@ -11,7 +10,6 @@ from rest_framework.response import Response
 from rest_framework import viewsets, authentication
 from dropship.models import Project, Issue, User, Label, Comment, Sprint, Worklog
 from django.core.mail import send_mail
-from django.db.models import Q
 import sqlite3
 
 from .serializers import ProjectSerializer, LabelSerializer, IssueSerializer, UserSerializer, SprintSerializer, \
@@ -44,9 +42,23 @@ class ProjectView(viewsets.ViewSet):
         return Response(serializer.data)
 
     def get_projects(self, request):
-        query = Project.objects.all()
+        title1=request.query_params.get('title')
+        description1=request.query_params.get('description')
+        creator1=request.query_params.get('creator')
+        response=Project.objects
+        print(title1)
+        if title1:
+            response=response.filter(title=title1)
+        if description1:
+            response=response.filter(description=description1)
+        if creator1:
+            response=response.filter(creator=creator1)
         paginator = LimitOffsetPagination()
-        result_page = paginator.paginate_queryset(query, request)
+        try:
+            result_page = paginator.paginate_queryset(response, request)
+        except TypeError:
+            response=response.all()
+            result_page = paginator.paginate_queryset(response, request)
         response = ProjectSerializer(result_page, many=True)
         return Response(response.data)
 
@@ -105,26 +117,42 @@ class IssueView(viewsets.ViewSet):
             response=IssueSerializer(l,many=True)
             # keys=('id','created_at','updated_at','title','description','status','type','project','reporter')
             crsr.close()
-            return Response({'data':response.data})
-        project_id = request.query_params.get('project-id')
+            return Response({'data':response.data},status=200)
+
         title1 = request.query_params.get('title')
         description1 = request.query_params.get('description')
-        if title1 != None and description1 != None:
-            response = list(Issue.objects.filter(title=title1, description=description1))
-            paginator = LimitOffsetPagination()
+        reporter1 = request.query_params.get('reporter')
+        assignee1 = request.query_params.get('assignee')
+        status1 = request.query_params.get('status')
+        type1 = request.query_params.get('type')
+        sprint1 = request.query_params.get('sprint')
+        # label1=request.query_params.get('label')
+        project1 = request.query_params.get('project')
+        # watcher1=request.query_params.get('watchers')
+        response = Issue.objects
+        if title1:
+            response = response.filter(title=title1)
+        if description1:
+            response = response.filter(description=description1)
+        if reporter1:
+            response = response.filter(reporter=reporter1)
+        if assignee1:
+            response = response.filter(assignee=assignee1)
+        if status1:
+            response = response.filter(status=status1)
+        if type1:
+            response = response.filter(type=type1)
+        if sprint1:
+            response = response.filter(sprint=sprint1)
+        if project1:
+            response = response.filter(project=project1)
+        paginator = LimitOffsetPagination()
+        try:
             result_page = paginator.paginate_queryset(response, request)
-            response = IssueSerializer(result_page, many=True)
-        elif project_id != None:
-            response = list(Issue.objects.filter(project=project_id))
-            paginator = LimitOffsetPagination()
+        except TypeError:
+            response=response.all()
             result_page = paginator.paginate_queryset(response, request)
-            response = IssueSerializer(result_page, many=True)
-        else:
-            print('bbb')
-            query = Issue.objects.all()
-            paginator = LimitOffsetPagination()
-            result_page = paginator.paginate_queryset(query, request)
-            response = IssueSerializer(result_page, many=True)
+        response = IssueSerializer(result_page, many=True)
         return Response(response.data, status=200)
 
     def get_issue(self, request, identifier):
@@ -227,7 +255,14 @@ class LabelView(viewsets.ViewSet):
     def delete(self, request, identifier):
         Label.objects.get(pk=identifier.lower()).delete()
         return Response(f"Label {identifier} deleted")
-
+    def get(self,request):
+        try:
+            response=Label.objects.get(pk=request.query_params.get('label'))
+            response = LabelSerializer(response)
+        except :
+            response=Label.objects.all()
+            response = LabelSerializer(response,many=True)
+        return Response(response.data,status=200)
 
 class CommentView(viewsets.ViewSet):
     def post(self, request):
@@ -256,6 +291,27 @@ class CommentView(viewsets.ViewSet):
         except:
             return Response(data="No comment with that Id", status=400)
         return Response(data="Comment deleted", status=200)
+
+    def get(self,request):
+        user=request.query_params.get('user')
+        issue=request.query_params.get('issue')
+        comment=request.query_params.get('comment')
+        response=Comment.objects
+        if user:
+            response=response.filter(user=user)
+        if comment:
+            response=response.filter(comment=comment)
+        if issue:
+            response=response.filter(issue=issue)
+        paginator = LimitOffsetPagination()
+        try:
+            result_page = paginator.paginate_queryset(response, request)
+        except TypeError:
+            response = response.all()
+            result_page = paginator.paginate_queryset(response, request)
+        response = CommentSerializer(result_page, many=True)
+        return Response(response.data)
+
 
 
 class SprintView(viewsets.ViewSet):
@@ -311,6 +367,33 @@ class SprintView(viewsets.ViewSet):
         issue.sprint_id = None
         return Response(data="Issue removed from sprint", status=200)
 
+    def get(self,request):
+        sprint_title=request.query_params.get('sprint-title')
+        start_date=request.query_params.get('start-date')
+        end_date=request.query_params.get('end-date')
+        sprint_status=request.query_params.get('sprint-status')
+        project=request.query_params.get('project')
+        response=Sprint.objects
+        if sprint_status:
+            response=response.filter(sprint_status=sprint_status)
+        if sprint_title:
+            response=response.filter(sprint_title=sprint_title)
+        if start_date:
+            response=response.filter(start_date=start_date)
+        if end_date:
+            response=response.filter(end_date=end_date)
+        if project:
+            response=response.filter(project=project)
+        paginator = LimitOffsetPagination()
+        try:
+            result_page = paginator.paginate_queryset(response, request)
+        except TypeError:
+            response = response.all()
+            result_page = paginator.paginate_queryset(response, request)
+        response = SprintSerializer(result_page, many=True)
+        return Response(response.data)
+
+
 
 class WorklogView(viewsets.ViewSet):
     def create(self, request):
@@ -345,3 +428,32 @@ class WorklogView(viewsets.ViewSet):
         except:
             Response("Worklog not found", status=400)
         return Response("Worklog deleted", status=200)
+
+    def get(self,request):
+        time_spent=request.query_params.get('time-spent')
+        start_date=request.query_params.get('start-date')
+        remaining_estimation=request.query_params.get('remaining-estimation')
+        work_description=request.query_params.get('work-description')
+        issue=request.query_params.get('issue')
+        user=request.query_params.get('user')
+        response=Worklog.objects
+        if time_spent:
+            response=response.filter(time_spent=time_spent)
+        if start_date:
+            response = response.filter(start_date=start_date)
+        if remaining_estimation:
+            response = response.filter(remaining_estimation=remaining_estimation)
+        if work_description:
+            response = response.filter(work_description=work_description)
+        if issue:
+            response = response.filter(issue=issue)
+        if user:
+            response = response.filter(user=user)
+        paginator = LimitOffsetPagination()
+        try:
+            result_page = paginator.paginate_queryset(response, request)
+        except TypeError:
+            response = response.all()
+            result_page = paginator.paginate_queryset(response, request)
+        response = WorklogSerializer(result_page, many=True)
+        return Response(response.data)
