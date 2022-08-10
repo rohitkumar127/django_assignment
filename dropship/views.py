@@ -32,8 +32,8 @@ class ProjectModelViewSet(viewsets.ModelViewSet):
 class IssueModelViewSet(viewsets.ModelViewSet):
     queryset = models.Issue.objects.all()
     serializer_class = serializers.IssueSerializer
-    # authentication_classes = [SessionAuthentication]
-    # permission_classes = [IsAuthenticated]
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['title', 'type', 'project',
                         'sprint', 'reporter', 'reporter__email', 'assignee__email', 'status', 'labels_list', 'watchers_list__email']
