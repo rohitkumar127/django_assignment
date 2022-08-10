@@ -77,4 +77,4 @@ class CommentModelViewSet(viewsets.ModelViewSet):
     authentication_classes = [SessionAuthentication]
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['comment', 'user', 'issue', 'project']
+    filterset_fields = ['comment', 'user', 'issue', 'project', 'user__email']
