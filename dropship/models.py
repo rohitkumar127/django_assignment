@@ -1,5 +1,6 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.utils.functional import lazy
 from rest_framework.authtoken.models import Token
 from django.conf import settings
 from django.db.models.signals import post_save
@@ -12,12 +13,10 @@ class TimestampModel(models.Model):
 
     class Meta:
         abstract = True
-
-
 class User(AbstractUser):
     # If there are any fields needed add here.
     role = models.CharField(max_length=30, null=True)
-
+    email=models.EmailField(max_length=50, blank=False,null=False,unique=True)
     def __str__(self):
         return self.username
 
@@ -60,9 +59,9 @@ class Issue(TimestampModel):
     title = models.CharField(max_length=128)
     description = models.TextField()
 
-    reporter = models.ForeignKey(User, on_delete=models.DO_NOTHING, related_name='reporter_id', null=True)
+    reporter = models.ForeignKey(User, on_delete=models.DO_NOTHING, related_name='reporter_id', null=True,to_field='email')
 
-    assignee = models.ForeignKey(User, blank=True, null=True, on_delete=models.SET_NULL, related_name='assignee',db_column='assignee')
+    assignee = models.ForeignKey(User, blank=True, null=True, on_delete=models.SET_NULL, related_name='assignee',db_column='assignee',to_field='email')
 
     OPEN = 'open'
     INPRGRESS = 'in progress'
@@ -75,13 +74,13 @@ class Issue(TimestampModel):
 
     status = models.CharField(max_length=30, choices=STATUS, default=OPEN, null=False)
 
-    watchers = models.ManyToManyField(User, blank=True)
+    watchers = models.ManyToManyField(User, blank=True,through='IssueWatcher',through_fields=('issue','watcher'))
 
     sprint = models.ForeignKey(Sprint, blank=True, related_name='sprint', on_delete=models.CASCADE, null=True)
 
     label = models.ManyToManyField(Label, blank=True)
 
-    type = models.CharField(max_length=8, choices=TYPES, default=BUG, null=False)
+    type = models.CharField(max_length=8, choices=TYPES, default=BUG, null=False,db_column='type')
 
     project = models.ForeignKey(
         Project, on_delete=models.CASCADE, related_name="issues", null=False,db_column='project'
@@ -103,3 +102,7 @@ class Worklog(models.Model):
     work_description=models.TextField()
     issue=models.ForeignKey(Issue, on_delete=models.CASCADE, related_name='issue_worklog', null=False)
     user = models.ForeignKey(User, on_delete=models.DO_NOTHING, related_name='user_worklog', null=False)
+class IssueWatcher(models.Model):
+    watcher=models.ForeignKey(User,on_delete=models.CASCADE,to_field='email',db_column='watchers')
+    issue=models.ForeignKey(Issue,on_delete=models.CASCADE)
+

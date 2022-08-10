@@ -8,7 +8,7 @@ from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import viewsets, authentication
-from dropship.models import Project, Issue, User, Label, Comment, Sprint, Worklog
+from dropship.models import Project, Issue, User, Label, Comment, Sprint, Worklog,IssueWatcher
 from django.core.mail import send_mail
 import sqlite3
 
@@ -42,22 +42,22 @@ class ProjectView(viewsets.ViewSet):
         return Response(serializer.data)
 
     def get_projects(self, request):
-        title1=request.query_params.get('title')
-        description1=request.query_params.get('description')
-        creator1=request.query_params.get('creator')
-        response=Project.objects
+        title1 = request.query_params.get('title')
+        description1 = request.query_params.get('description')
+        creator1 = request.query_params.get('creator')
+        response = Project.objects
         print(title1)
         if title1:
-            response=response.filter(title=title1)
+            response = response.filter(title=title1)
         if description1:
-            response=response.filter(description=description1)
+            response = response.filter(description=description1)
         if creator1:
-            response=response.filter(creator=creator1)
+            response = response.filter(creator=creator1)
         paginator = LimitOffsetPagination()
         try:
             result_page = paginator.paginate_queryset(response, request)
         except TypeError:
-            response=response.all()
+            response = response.all()
             result_page = paginator.paginate_queryset(response, request)
         response = ProjectSerializer(result_page, many=True)
         return Response(response.data)
@@ -104,20 +104,19 @@ class IssueView(viewsets.ViewSet):
         if dsql != None:
             connection = sqlite3.connect('db.sqlite3')
             crsr = connection.cursor()
-            sql_command = 'select id from dropship_issue where'+dsql
+            print(12,dsql)
+            sql_command = 'select * from dropship_issue where '+dsql
             crsr.execute(sql_command)
             p = crsr.fetchall()
-            print(crsr.fetchall())
+            print(p)
             l = []
             for i in p:
-                print('123', i)
                 issue = Issue.objects.get(pk=i[0])
                 l.append(issue)
-                print('abc', i)
-            response=IssueSerializer(l,many=True)
+            response = IssueSerializer(l, many=True)
             # keys=('id','created_at','updated_at','title','description','status','type','project','reporter')
             crsr.close()
-            return Response({'data':response.data},status=200)
+            return Response({'data': response.data}, status=200)
 
         title1 = request.query_params.get('title')
         description1 = request.query_params.get('description')
@@ -150,7 +149,7 @@ class IssueView(viewsets.ViewSet):
         try:
             result_page = paginator.paginate_queryset(response, request)
         except TypeError:
-            response=response.all()
+            response = response.all()
             result_page = paginator.paginate_queryset(response, request)
         response = IssueSerializer(result_page, many=True)
         return Response(response.data, status=200)
@@ -158,8 +157,10 @@ class IssueView(viewsets.ViewSet):
     def get_issue(self, request, identifier):
         try:
             query = Issue.objects.get(pk=identifier)
+            # query=IssueSerializer(query)
+            # print(query.watchers.all())
         except:
-            return Response("No project with that Id", status=404)
+            return Response("No issue with that Id", status=404)
         response = IssueSerializer(query)
         return Response(response.data, status=200)
 
@@ -175,44 +176,39 @@ class IssueView(viewsets.ViewSet):
         else:
             return False
 
+    # def mailing(self,identifier):
+
+
     def patch(self, request, identifier):
         print(type(request))
         issue = Issue.objects.get(pk=identifier)
-        status_changeable = self.update_status(issue.status, request.data['status'])
-        for i in range(len(request.data['label'])):
-            request.data['label'][i] = request.data['label'][i].lower()
-        if not status_changeable:
-            return Response({"Failed": "Check spelling and sequence of status"}, status=400)
-        # send_mail(
-        #     'Status change',
-        #     f'{issue.title} status has been changed from {issue.status} to {request.data["status"]}',
-        #     'az5717@srmist.edu.in',
-        #     ['raghavendraarveti@gmail.com'],
-        #     fail_silently=False,
-        # )
+        try:
+            status_changeable = self.update_status(issue.status, request.data['status'])
+            if not status_changeable:
+                return Response({"Failed": "Check spelling and sequence of status"}, status=400)
+            if not issue.status==request.data['status']:
+                mail_ids=list(map(lambda i:i.email,issue.watchers.all()))
+                print(mail_ids)
+                send_mail(
+                    'Status change',
+                    f'{issue.title} status has been changed from {issue.status} to {request.data["status"]}',
+                    'az5717@srmist.edu.in',
+                    mail_ids,
+                    fail_silently=False,
+                )
+        except KeyError:
+            pass
+        try:
+            for i in range(len(request.data['label'])):
+                request.data['label'][i] = request.data['label'][i].lower()
+        except KeyError:
+            pass
+
         serializer = IssueSerializer(issue, data=request.data, partial=True)
         serializer.is_valid()
         serializer.save()
         # return Response(serializer.data, status=201)
         return Response("Issue updated", status=200)
-
-    # def update_issue(self, request, identifier):
-    #     issue = Issue()
-    #     issue = json.loads(request.body)
-    #     issue_saved = Issue.objects.filter(pk=identifier)
-    #     issue_saved.update(title=issue['title'], description=issue['description']
-    #                        , updated_at=str(datetime.datetime.now(tz=timezone.utc)), type=issue['type'],
-    #                        assignee_id=issue['assignee'], sprint=issue['sprint'])
-    #
-    #     issue1=Issue.objects.get(pk=identifier)
-    #     # print('hhh',User.objects.get(pk=1).id)
-    #     for i in issue['watchers']:
-    #         try:
-    #             user=User.objects.get(pk=i)
-    #             issue1.watchers.add(user)
-    #   token f8b647b75a2882049a582e72d77b13e166bc84bf      except:
-    #             return Response("No user with that Id", status=404)
-    #     return Response('Issue updated', status=200)
 
     def attach_label(self, request, identifier):
         # label=LabelSerializer(data=request.data)
@@ -243,6 +239,21 @@ class IssueView(viewsets.ViewSet):
             return Response("No issue with that Id", status=404)
         return Response('Deleted sucessfully', status=200)
 
+    def add_watcher(self,request,identifier):
+        watcher=request.query_params.get('watcher-id')
+        issue=Issue.objects.get(pk=identifier)
+        watcher=User.objects.get(pk=watcher)
+        issue.watchers.add(watcher.email)
+        issue.save()
+        return Response(data="Watcher added")
+
+    def remove_watcher(self,request,identifier):
+        watcher = request.query_params.get('watcher-id')
+        issue = Issue.objects.get(pk=identifier)
+        watcher = User.objects.get(pk=watcher)
+        issue.watchers.remove(watcher)
+        issue.save()
+        return Response(data="Watcher Removed")
 
 class LabelView(viewsets.ViewSet):
     def post(self, request):
@@ -255,14 +266,16 @@ class LabelView(viewsets.ViewSet):
     def delete(self, request, identifier):
         Label.objects.get(pk=identifier.lower()).delete()
         return Response(f"Label {identifier} deleted")
-    def get(self,request):
+
+    def get(self, request):
         try:
-            response=Label.objects.get(pk=request.query_params.get('label'))
+            response = Label.objects.get(pk=request.query_params.get('label'))
             response = LabelSerializer(response)
-        except :
-            response=Label.objects.all()
-            response = LabelSerializer(response,many=True)
-        return Response(response.data,status=200)
+        except:
+            response = Label.objects.all()
+            response = LabelSerializer(response, many=True)
+        return Response(response.data, status=200)
+
 
 class CommentView(viewsets.ViewSet):
     def post(self, request):
@@ -292,17 +305,17 @@ class CommentView(viewsets.ViewSet):
             return Response(data="No comment with that Id", status=400)
         return Response(data="Comment deleted", status=200)
 
-    def get(self,request):
-        user=request.query_params.get('user')
-        issue=request.query_params.get('issue')
-        comment=request.query_params.get('comment')
-        response=Comment.objects
+    def get(self, request):
+        user = request.query_params.get('user')
+        issue = request.query_params.get('issue')
+        comment = request.query_params.get('comment')
+        response = Comment.objects
         if user:
-            response=response.filter(user=user)
+            response = response.filter(user=user)
         if comment:
-            response=response.filter(comment=comment)
+            response = response.filter(comment=comment)
         if issue:
-            response=response.filter(issue=issue)
+            response = response.filter(issue=issue)
         paginator = LimitOffsetPagination()
         try:
             result_page = paginator.paginate_queryset(response, request)
@@ -311,7 +324,6 @@ class CommentView(viewsets.ViewSet):
             result_page = paginator.paginate_queryset(response, request)
         response = CommentSerializer(result_page, many=True)
         return Response(response.data)
-
 
 
 class SprintView(viewsets.ViewSet):
@@ -367,23 +379,23 @@ class SprintView(viewsets.ViewSet):
         issue.sprint_id = None
         return Response(data="Issue removed from sprint", status=200)
 
-    def get(self,request):
-        sprint_title=request.query_params.get('sprint-title')
-        start_date=request.query_params.get('start-date')
-        end_date=request.query_params.get('end-date')
-        sprint_status=request.query_params.get('sprint-status')
-        project=request.query_params.get('project')
-        response=Sprint.objects
+    def get(self, request):
+        sprint_title = request.query_params.get('sprint-title')
+        start_date = request.query_params.get('start-date')
+        end_date = request.query_params.get('end-date')
+        sprint_status = request.query_params.get('sprint-status')
+        project = request.query_params.get('project')
+        response = Sprint.objects
         if sprint_status:
-            response=response.filter(sprint_status=sprint_status)
+            response = response.filter(sprint_status=sprint_status)
         if sprint_title:
-            response=response.filter(sprint_title=sprint_title)
+            response = response.filter(sprint_title=sprint_title)
         if start_date:
-            response=response.filter(start_date=start_date)
+            response = response.filter(start_date=start_date)
         if end_date:
-            response=response.filter(end_date=end_date)
+            response = response.filter(end_date=end_date)
         if project:
-            response=response.filter(project=project)
+            response = response.filter(project=project)
         paginator = LimitOffsetPagination()
         try:
             result_page = paginator.paginate_queryset(response, request)
@@ -392,7 +404,6 @@ class SprintView(viewsets.ViewSet):
             result_page = paginator.paginate_queryset(response, request)
         response = SprintSerializer(result_page, many=True)
         return Response(response.data)
-
 
 
 class WorklogView(viewsets.ViewSet):
@@ -429,16 +440,16 @@ class WorklogView(viewsets.ViewSet):
             Response("Worklog not found", status=400)
         return Response("Worklog deleted", status=200)
 
-    def get(self,request):
-        time_spent=request.query_params.get('time-spent')
-        start_date=request.query_params.get('start-date')
-        remaining_estimation=request.query_params.get('remaining-estimation')
-        work_description=request.query_params.get('work-description')
-        issue=request.query_params.get('issue')
-        user=request.query_params.get('user')
-        response=Worklog.objects
+    def get(self, request):
+        time_spent = request.query_params.get('time-spent')
+        start_date = request.query_params.get('start-date')
+        remaining_estimation = request.query_params.get('remaining-estimation')
+        work_description = request.query_params.get('work-description')
+        issue = request.query_params.get('issue')
+        user = request.query_params.get('user')
+        response = Worklog.objects
         if time_spent:
-            response=response.filter(time_spent=time_spent)
+            response = response.filter(time_spent=time_spent)
         if start_date:
             response = response.filter(start_date=start_date)
         if remaining_estimation:
